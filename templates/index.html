@@ -1,0 +1,78 @@
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Graphics Editor</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center">Online Graphics Editor</h1>
+        <div id="messages" class="text-center"></div>
+        <div class="text-center my-3">
+            <input type="file" id="imageLoader" accept="image/*" onchange="uploadFile()">
+        </div>
+        <img id="preview" class="d-block mx-auto my-3" width="600" height="400">
+        <button type="button" class="btn btn-success d-block my-3 mx-auto" onclick="downloadImage()">Скачать</button>
+
+    <div class="accordion" id="accordionExample">
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+              Изменить размер
+            </button>
+          </h2>
+          <div id="collapseOne" class="accordion-collapse collapse show" data-bs-parent="#accordionExample">
+            <div class="accordion-body col-4 mx-auto text-center">
+                <form id="resizeForm" method="POST">
+                    <div class="input-group">
+                        <span class="input-group-text">Высота и ширина</span>
+                        <input name="height" id="resizeHeight" type="number" min=1 class="form-control" onchange="resize(1)">
+                        <input name="width" id="resizeWidth" type="number" min=1 class="form-control" onchange="resize(1)">
+                    </div>
+                    <p class="text-muted my-3">Или</p>
+                    <label for="resizeScale" class="form-label">Коэффициент масштабирования</label>
+                    <div class="input-group mb-3">
+                        <span class="input-group-text" id="inputGroup-sizing-default">x</span>
+                        <input name="scale" id="resizeScale" type="number" class="form-control" aria-describedby="inputGroup-sizing-default" value="1.0" max="4" min="0.1" step="0.1" onchange="resize(0)">
+                    </div>
+                    <button type="button" class="btn btn-primary" onclick="submitChanges();">Подтвердить</button>
+                    <button type="button" class="btn btn-danger" onclick="reeset();">Сброс</button>
+                </form>
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+              Accordion Item #2
+            </button>
+          </h2>
+          <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+            <div class="accordion-body">
+              <strong>This is the second item's accordion body.</strong> It is hidden by default, until the collapse plugin adds the appropriate classes that we use to style each element. These classes control the overall appearance, as well as the showing and hiding via CSS transitions. You can modify any of this with custom CSS or overriding our default variables. It's also worth noting that just about any HTML can go within the <code>.accordion-body</code>, though the transition does limit overflow.
+            </div>
+          </div>
+        </div>
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+              Accordion Item #3
+            </button>
+          </h2>
+          <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+            <div class="accordion-body">
+              <strong>This is the third item's accordion body.</strong> It is hidden by default, until the collapse plugin adds the appropriate classes that we use to style each element. These classes control the overall appearance, as well as the showing and hiding via CSS transitions. You can modify any of this with custom CSS or overriding our default variables. It's also worth noting that just about any HTML can go within the <code>.accordion-body</code>, though the transition does limit overflow.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/script.js"></script>
+</body>
+</html>
