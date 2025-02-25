@@ -97,6 +97,29 @@ def crop(filename):
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
+@app.route("/mirror/<filename>", methods=["POST"])
+def mirror(filename):
+    data = request.form
+    try:
+        axis = int(data.get("axis"))
+    except Exception as e:
+        print(e)
+        return jsonify({"error": "Некорректные данные"}), 400
+    filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+    if(axis < -1 or axis > 1):
+        return jsonify({"error": "Некорректная ось"}), 400
+    if not os.path.exists(filepath):
+        return jsonify({"error": "Файл не найден"}), 404
+    try:
+        img = cv2.imread(filepath)
+        mirrored_img = cv2.flip(img, axis)
+        mirrored_filepath = os.path.join(app.config["UPLOAD_FOLDER"], f"mirrored_{filename}")
+        cv2.imwrite(mirrored_filepath, mirrored_img)
+        
+        return jsonify({"filename": f"mirrored_{filename}", "filepath": mirrored_filepath, "size": mirrored_img.shape})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
 @app.route("/upload", methods=["POST"])
 def upload_file():
     if "file" not in request.files or request.files["file"].filename == "":

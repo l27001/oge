@@ -112,3 +112,24 @@ function crop() {
     })
     .catch(error => console.error('Error:', error));
 }
+
+function mirror(axis) {
+    let formData = new FormData();
+    formData.append('axis', axis)
+
+    fetch('/mirror/' + Gdata.filename, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            showMessage("danger", data.error);
+
+        } else {
+            updateImage(data);
+            submitChanges();
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
