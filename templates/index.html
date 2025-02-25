@@ -20,23 +20,38 @@
     <div class="accordion" id="accordionExample">
         <div class="accordion-item">
           <h2 class="accordion-header">
-            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne">
               Изменить размер
             </button>
           </h2>
-          <div id="collapseOne" class="accordion-collapse collapse show" data-bs-parent="#accordionExample">
-            <div class="accordion-body col-4 mx-auto text-center">
+          <div id="collapseOne" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+            <div class="accordion-body col-5 mx-auto text-center">
                 <form id="resizeForm" method="POST">
+                  <div class="btn-group my-3" role="group" aria-label="Basic radio toggle button group">
+                    <input type="radio" class="btn-check" name="interpolation" id="interpolation1" autocomplete="off" value="auto" checked onchange="resize()">
+                    <label class="btn btn-outline-primary" for="interpolation1">Авто</label>
+                  
+                    <input type="radio" class="btn-check" name="interpolation" id="interpolation2" autocomplete="off" value="cubic" onchange="resize()">
+                    <label class="btn btn-outline-primary" for="interpolation2">Бикубическая</label>
+                  
+                    <input type="radio" class="btn-check" name="interpolation" id="interpolation3" autocomplete="off" value="area" onchange="resize()">
+                    <label class="btn btn-outline-primary" for="interpolation3">По области</label>
+
+                    <input type="radio" class="btn-check" name="interpolation" id="interpolation4" autocomplete="off" value="linear" onchange="resize()">
+                    <label class="btn btn-outline-primary" for="interpolation4">Билинейная</label>
+                  </div>
+                  <div class="mx-auto">
                     <div class="input-group">
                         <span class="input-group-text">Высота и ширина</span>
                         <input name="height" id="resizeHeight" type="number" min=1 class="form-control" onchange="resize(1)">
                         <input name="width" id="resizeWidth" type="number" min=1 class="form-control" onchange="resize(1)">
-                    </div>
-                    <p class="text-muted my-3">Или</p>
-                    <label for="resizeScale" class="form-label">Коэффициент масштабирования</label>
-                    <div class="input-group mb-3">
-                        <span class="input-group-text" id="inputGroup-sizing-default">x</span>
-                        <input name="scale" id="resizeScale" type="number" class="form-control" aria-describedby="inputGroup-sizing-default" value="1.0" max="4" min="0.1" step="0.1" onchange="resize(0)">
+                      </div>
+                      <p class="text-muted my-3">Или</p>
+                      <label for="resizeScale" class="form-label">Коэффициент масштабирования</label>
+                      <div class="input-group mb-3">
+                          <span class="input-group-text" id="inputGroup-sizing-default">x</span>
+                          <input name="scale" id="resizeScale" type="number" class="form-control" aria-describedby="inputGroup-sizing-default" value="1.0" max="4" min="0.1" step="0.1" onchange="resize(0)">
+                      </div>
                     </div>
                     <button type="button" class="btn btn-primary" onclick="submitChanges();">Подтвердить</button>
                     <button type="button" class="btn btn-danger" onclick="reeset();">Сброс</button>
@@ -47,20 +62,40 @@
 
         <div class="accordion-item">
           <h2 class="accordion-header">
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
-              Accordion Item #2
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo">
+              Обрезать
             </button>
           </h2>
-          <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
-            <div class="accordion-body">
-              <strong>This is the second item's accordion body.</strong> It is hidden by default, until the collapse plugin adds the appropriate classes that we use to style each element. These classes control the overall appearance, as well as the showing and hiding via CSS transitions. You can modify any of this with custom CSS or overriding our default variables. It's also worth noting that just about any HTML can go within the <code>.accordion-body</code>, though the transition does limit overflow.
+          <div id="collapseTwo" class="accordion-collapse collapse show" data-bs-parent="#accordionExample">
+            <div class="accordion-body col-5 mx-auto text-center">
+              <form id="cropForm">
+                <div>
+                  <label class="form-label">Координаты верхнего левого угла</label>
+                  <div class="input-group">
+                    <span class="input-group-text">X, Y</span>
+                    <input name="X" id="cropX" type="number" min=1 class="form-control">
+                    <input name="Y" id="cropY" type="number" min=1 class="form-control">
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Размеры</label>
+                  <div class="input-group">
+                    <span class="input-group-text">Ширина, Высота</span>
+                    <input name="width" id="cropXOffset" type="number" min=1 class="form-control">
+                    <input name="height" id="cropYOffset" type="number" min=1 class="form-control">
+                  </div>
+                </div>
+                <button type="button" class="btn btn-success" onclick="crop();">Применить</button>
+                <button type="button" class="btn btn-primary" onclick="submitChanges();">Подтвердить</button>
+                <button type="button" class="btn btn-danger" onclick="reeset();">Сброс</button>
+              </form>
             </div>
           </div>
         </div>
         <div class="accordion-item">
           <h2 class="accordion-header">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
-              Accordion Item #3
+              Зеркальное отображение
             </button>
           </h2>
           <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#accordionExample">

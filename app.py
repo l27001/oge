@@ -1,6 +1,6 @@
 import os
 import cv2
-import numpy as np
+from datetime import datetime
 from flask import Flask, request, render_template, send_file, jsonify
 from werkzeug.utils import secure_filename
 
@@ -27,6 +27,7 @@ def resize(filename):
         width = int(data.get("width"))
         height = int(data.get("height"))
         scale = float(data.get("scale").replace(',', '.'))
+        interpolation = data.get("interpolation")
     except Exception as e:
         print(e)
         return jsonify({"error": "Некорректные данные"}), 400
@@ -48,9 +49,9 @@ def resize(filename):
             scale = 0
 
         # Автоматический выбор метода интерполяции
-        if scale and scale > 1:
+        if (interpolation == 'auto' and scale and scale > 1) or interpolation == 'cubic':
             interpolation = cv2.INTER_CUBIC
-        elif scale and scale < 1:
+        elif (interpolation == 'auto' and scale and scale < 1) or interpolation == 'area':
             interpolation = cv2.INTER_AREA
         else:
             interpolation = cv2.INTER_LINEAR
@@ -60,6 +61,39 @@ def resize(filename):
         cv2.imwrite(resized_filepath, resized_img)
         
         return jsonify({"filename": f"resized_{filename}", "filepath": resized_filepath, "size": resized_img.shape, "scale": scale})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+@app.route("/crop/<filename>", methods=["POST"])
+def crop(filename):
+    data = request.form
+    try:
+        X = int(data.get("X"))
+        Y = int(data.get("Y"))
+        width = int(data.get("width"))
+        height = int(data.get("height"))
+    except Exception as e:
+        print(e)
+        return jsonify({"error": "Некорректные данные"}), 400
+    filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+    if(X < 0 or Y < 0):
+        return jsonify({"error": "Некорректные координаты"}), 400
+    if(height < 1 or width < 1):
+        return jsonify({"error": "Некорректные размеры"}), 400
+    if not os.path.exists(filepath):
+        return jsonify({"error": "Файл не найден"}), 404
+    try:
+        img = cv2.imread(filepath)
+        h, w = img.shape[:2]
+        if(X > w or Y > h):
+            return jsonify({"error": "Координаты больше размеров изображения"}), 400
+        if(X+width > w or Y+height > h):
+            return jsonify({"error": "Область вырезки больше размеров изображения"}), 400
+        cropped_img = img[Y:Y+height, X:X+width]
+        cropped_filepath = os.path.join(app.config["UPLOAD_FOLDER"], f"cropped_{filename}")
+        cv2.imwrite(cropped_filepath, cropped_img)
+        
+        return jsonify({"filename": f"cropped_{filename}", "filepath": cropped_filepath, "size": cropped_img.shape})
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
@@ -91,7 +125,7 @@ def upload_file():
 def preview_image(filename):
     filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
     if os.path.exists(filepath):
-        return send_file(filepath, mimetype="image/jpeg")
+        return send_file(filepath, mimetype="image/jpeg", max_age=0, last_modified=datetime.now().timestamp(), etag=None)
     return jsonify({"error": "Файл не найден"}), 404
 
 if __name__ == "__main__":

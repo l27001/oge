@@ -26,8 +26,8 @@ function submitChanges() {
 
 function updateImage(data, new_=0) {
     let img = document.getElementById('preview');
-    img.src = null;
-    img.src = `/preview/${data.filename}`;
+    let timestamp = Date.now();
+    img.src = `/preview/${data.filename}?${timestamp}`;
     img.style.display = 'block';
     img.height = data.size[0];
     img.width = data.size[1];
@@ -88,7 +88,26 @@ function resize(hw=0) {
 
         } else {
             updateImage(data);
-            document.getElementById("resizeScale").value = data.scale;
+           document.getElementById("resizeScale").value = data.scale;
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function crop() {
+    let formData = new FormData(document.getElementById("cropForm"));
+
+    fetch('/crop/' + Gdata.filename, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            showMessage("danger", data.error);
+
+        } else {
+            updateImage(data);
         }
     })
     .catch(error => console.error('Error:', error));
