@@ -1,5 +1,6 @@
 import os
 import cv2
+import numpy as np
 from datetime import datetime
 from flask import Flask, request, render_template, send_file, jsonify
 from werkzeug.utils import secure_filename
@@ -117,6 +118,94 @@ def mirror(filename):
         cv2.imwrite(mirrored_filepath, mirrored_img)
         
         return jsonify({"filename": f"mirrored_{filename}", "filepath": mirrored_filepath, "size": mirrored_img.shape})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+    
+@app.route("/rotate/<filename>", methods=["POST"])
+def rotate(filename):
+    data = request.form
+    try:
+        center_x = int(data.get("center_x"))
+        center_y = int(data.get("center_y"))
+        angle = int(data.get("angle"))
+    except Exception as e:
+        print(e)
+        return jsonify({"error": "Некорректные данные"}), 400
+    filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+    if not os.path.exists(filepath):
+        return jsonify({"error": "Файл не найден"}), 404
+    try:
+        img = cv2.imread(filepath)
+        (h, w) = img.shape[:2]
+        if(center_x < 1 or center_x > w or center_y < 1 or center_y > h):
+            return jsonify({"error": "Некорректный центр"}), 400
+        # подготовим объект для поворота изображения на 180 относительно центра и запишем его в переменную prepObj
+        prepObj = cv2.getRotationMatrix2D((center_x, center_y), angle, 1.0)
+        # повернем исходное изображение на abgle, результат запишем в переменную rotated_img
+        rotated_img = cv2.warpAffine(img, prepObj, (w, h), flags=cv2.INTER_LINEAR)
+        rotated_filepath = os.path.join(app.config["UPLOAD_FOLDER"], f"rotated_{filename}")
+        cv2.imwrite(rotated_filepath, rotated_img)
+        
+        return jsonify({"filename": f"rotated_{filename}", "filepath": rotated_filepath, "size": rotated_img.shape})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+@app.route("/contrast/<filename>", methods=["POST"])
+def contast(filename):
+    data = request.form
+    try:
+        contrast = float(data.get("contrast"))
+        brightness = int(data.get("brightness"))
+    except Exception as e:
+        print(e)
+        return jsonify({"error": "Некорректные данные"}), 400
+    filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+    if not os.path.exists(filepath):
+        return jsonify({"error": "Файл не найден"}), 404
+    try:
+        img = cv2.imread(filepath)
+        if(not (0.1 <= contrast <= 3)):
+            return jsonify({"error": "Некорректный контраст"}), 400
+        if(not (-100 <= brightness <= 100)):
+            return jsonify({"error": "Некорректная яркость"}), 400
+        adjusted_img = cv2.convertScaleAbs(img, alpha=contrast, beta=brightness)
+        adjusted_filepath = os.path.join(app.config["UPLOAD_FOLDER"], f"contrast_{filename}")
+        cv2.imwrite(adjusted_filepath, adjusted_img)
+        
+        return jsonify({"filename": f"contrast_{filename}", "filepath": adjusted_filepath, "size": adjusted_img.shape})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+@app.route("/color/<filename>", methods=["POST"])
+def color(filename):
+    data = request.form
+    try:
+        red = float(data.get("red"))
+        green = float(data.get("green"))
+        blue = float(data.get("blue"))
+    except Exception as e:
+        print(e)
+        return jsonify({"error": "Некорректные данные"}), 400
+    filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+    if not os.path.exists(filepath):
+        return jsonify({"error": "Файл не найден"}), 404
+    try:
+        img = cv2.imread(filepath)
+        # if(not (0.5 <= red <= 2)):
+        #     return jsonify({"error": "Некорректный уровень красного"}), 400
+        # if(not (0.5 <= green <= 2)):
+        #     return jsonify({"error": "Некорректный уровень зелёного"}), 400
+        # if(not (0.5 <= blue <= 2)):
+        #     return jsonify({"error": "Некорректный уровень синего"}), 400
+        b_channel, g_channel, r_channel = cv2.split(img)
+        b = np.clip(b_channel * blue, 0, 255).astype(np.uint8)
+        g = np.clip(g_channel * green, 0, 255).astype(np.uint8)
+        r = np.clip(r_channel * red, 0, 255).astype(np.uint8)
+        color_img = cv2.merge((b, g, r))
+        color_filepath = os.path.join(app.config["UPLOAD_FOLDER"], f"color_{filename}")
+        cv2.imwrite(color_filepath, color_img)
+        
+        return jsonify({"filename": f"color_{filename}", "filepath": color_filepath, "size": color_img.shape})
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
