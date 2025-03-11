@@ -2,7 +2,7 @@ import os
 import cv2
 import numpy as np
 from datetime import datetime
-from flask import Flask, request, render_template, send_file, jsonify
+from flask import Flask, request, render_template, send_file, jsonify, url_for
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -137,7 +137,7 @@ def rotate(filename):
     try:
         img = cv2.imread(filepath)
         (h, w) = img.shape[:2]
-        if(center_x < 1 or center_x > w or center_y < 1 or center_y > h):
+        if(center_x < 0 or center_x > w or center_y < 0 or center_y > h):
             return jsonify({"error": "Некорректный центр"}), 400
         # подготовим объект для поворота изображения на 180 относительно центра и запишем его в переменную prepObj
         prepObj = cv2.getRotationMatrix2D((center_x, center_y), angle, 1.0)
@@ -209,6 +209,97 @@ def color(filename):
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
+@app.route("/gnoise/<filename>", methods=["POST"])
+def gnoise(filename):
+    data = request.form
+    try:
+        level = int(data.get("level"))
+    except Exception as e:
+        print(e)
+        return jsonify({"error": "Некорректные данные"}), 400
+    filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+    if not os.path.exists(filepath):
+        return jsonify({"error": "Файл не найден"}), 404
+    try:
+        img = cv2.imread(filepath)
+        if(not (0 <= level <= 50)):
+            return jsonify({"error": "Некорректный уровень шума"}), 400
+        noise = np.random.normal(0, level, img.shape).astype(np.int16)
+        noise_img = np.clip(img.astype(np.int16) + noise, 0, 255).astype(np.uint8)
+        noise_filepath = os.path.join(app.config["UPLOAD_FOLDER"], f"gnoise_{filename}")
+        cv2.imwrite(noise_filepath, noise_img)
+        return jsonify({"filename": f"gnoise_{filename}", "filepath": noise_filepath, "size": noise_img.shape})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+@app.route("/snoise/<filename>", methods=["POST"])
+def snoise(filename):
+    data = request.form
+    try:
+        level = float(data.get("level"))
+    except Exception as e:
+        print(e)
+        return jsonify({"error": "Некорректные данные"}), 400
+    filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+    if not os.path.exists(filepath):
+        return jsonify({"error": "Файл не найден"}), 404
+    try:
+        img = cv2.imread(filepath)
+        if(not (0 <= level <= 0.5)):
+            return jsonify({"error": "Некорректный уровень шума"}), 400
+        noise_img = img.copy()
+        total_pixels = img.size
+
+        # Добавление соли (белых пикселей)
+        num_salt = int(total_pixels * level)
+        coords = [np.random.randint(0, i, num_salt) for i in img.shape[:2]]
+        noise_img[coords[0], coords[1]] = 255
+
+        # Добавление перца (черных пикселей)
+        num_pepper = int(total_pixels * level)
+        coords = [np.random.randint(0, i, num_pepper) for i in img.shape[:2]]
+        noise_img[coords[0], coords[1]] = 0
+        noise_filepath = os.path.join(app.config["UPLOAD_FOLDER"], f"snoise_{filename}")
+        cv2.imwrite(noise_filepath, noise_img)
+        return jsonify({"filename": f"snoise_{filename}", "filepath": noise_filepath, "size": noise_img.shape})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+@app.route("/blur/<filename>", methods=["POST"])
+def blur(filename):
+    data = request.form
+    try:
+        blur = str(data.get("blur"))
+        pixels = int(data.get("pixels"))
+    except Exception as e:
+        print(e)
+        return jsonify({"error": "Некорректные данные"}), 400
+    filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+    if not os.path.exists(filepath):
+        return jsonify({"error": "Файл не найден"}), 404
+    if(blur not in ["medium", "gauss", "median"]):
+        return jsonify({"error": "Некорректный тип блюра"}), 400
+    try:
+        img = cv2.imread(filepath)
+        if(pixels < 0):
+            pixels = 0
+        if(pixels % 2 != 1):
+            return jsonify({"error": "Некорректное значение pixels"}), 400
+        if(blur == "medium"):
+            # 1️⃣ Среднее размытие (усреднение)
+            blur_img = cv2.blur(img, (pixels, pixels))  # Ядро 5x5
+        elif(blur == "gauss"):
+            # 2️⃣ Гауссово размытие (сглаживает, но сохраняет детали)
+            blur_img = cv2.GaussianBlur(img, (pixels, pixels), sigmaX=0)
+        elif(blur == "median"):
+            # 3️⃣ Медианное размытие (отлично удаляет шум «соль и перец»)
+            blur_img = cv2.medianBlur(img, pixels)  # Размер ядра 5x5
+        noise_filepath = os.path.join(app.config["UPLOAD_FOLDER"], f"blur_{filename}")
+        cv2.imwrite(noise_filepath, blur_img)
+        return jsonify({"filename": f"blur_{filename}", "filepath": noise_filepath, "size": blur_img.shape})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
 @app.route("/upload", methods=["POST"])
 def upload_file():
     if "file" not in request.files or request.files["file"].filename == "":
@@ -239,6 +330,32 @@ def preview_image(filename):
     if os.path.exists(filepath):
         return send_file(filepath, mimetype="image/jpeg", max_age=0, last_modified=datetime.now().timestamp(), etag=None)
     return jsonify({"error": "Файл не найден"}), 404
+
+@app.route("/save/<filename>", methods=['POST'])
+def save(filename):
+    data = request.form
+    try:
+        format = str(data.get("save"))
+        quality = int(data.get("quality"))
+    except Exception as e:
+        print(e)
+        return jsonify({"error": "Некорректные данные"}), 400
+    if(format not in ['jpeg', 'png', 'tiff']):
+        return jsonify({"error": "Некорректный формат"}), 400
+    if(format == "jpeg" and not (30 <= quality <= 100)):
+        return jsonify({"error": "Некорректное качество JPEG"}), 400
+    filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+    if not os.path.exists(filepath):
+        return jsonify({"error": "Файл не найден"}), 404
+    img = cv2.imread(filepath)
+    filename = '.'.join(filename.split('.')[:-1] + [format])
+    filepath = os.path.join(app.config["UPLOAD_FOLDER"], f"save_{filename}")
+    params = []
+    if(format == 'jpeg'):
+        params += [cv2.IMWRITE_JPEG_QUALITY, quality]
+    cv2.imwrite(filepath, img, params)
+    return jsonify({"link": url_for('preview_image', filename=f"save_{filename}"), "name": filename})
+    # return send_file(filepath)
 
 if __name__ == "__main__":
     app.run(debug=True)

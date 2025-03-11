@@ -10,17 +10,27 @@ function showMessage(type, message) {
     setTimeout(() => msgdiv.removeChild(msg), 5000);
 }
 
-async function downloadImage() {
-    const image = await fetch(document.getElementById('preview').src)
-    const imageBlog = await image.blob()
-    const imageURL = URL.createObjectURL(imageBlog)
-  
-    const link = document.createElement('a')
-    link.href = imageURL
-    link.download = 'image file name here'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+function downloadImage() {
+    let formData = new FormData(document.getElementById("saveForm"));
+
+    fetch('/save/' + Ldata.filename, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            showMessage("danger", data.error);
+        } else {        
+            var a = document.createElement('A');
+            a.href = data.link;
+            a.download = data.link.substr(data.link.lastIndexOf('/') + 1);
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    })
+    .catch(error => console.error('Error:', error));
 }
 
 function submitChanges(notify=1) {
@@ -51,6 +61,8 @@ function updateImage(data, new_=0) {
         document.getElementById("colorRed").value = 1;
         document.getElementById("colorGreen").value = 1;
         document.getElementById("colorBlue").value = 1;
+        document.getElementById("gnoiseLevel").value = 0;
+        document.getElementById("snoiseLevel").value = 0;
         Gdata = data;
     }
 }
@@ -81,6 +93,7 @@ function uploadFile() {
         } else {
             updateImage(data, 1);
             document.getElementById("accordionExample").hidden = 0;
+            document.getElementById("info").hidden = 0;
         }
     })
     .catch(error => console.error('Error:', error));
@@ -192,6 +205,63 @@ function color() {
     let formData = new FormData(document.getElementById("colorForm"));
 
     fetch('/color/' + Gdata.filename, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            showMessage("danger", data.error);
+
+        } else {
+            updateImage(data);
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function gnoise() {
+    let formData = new FormData(document.getElementById("gnoiseForm"));
+
+    fetch('/gnoise/' + Gdata.filename, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            showMessage("danger", data.error);
+
+        } else {
+            updateImage(data);
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function snoise() {
+    let formData = new FormData(document.getElementById("snoiseForm"));
+
+    fetch('/snoise/' + Gdata.filename, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            showMessage("danger", data.error);
+
+        } else {
+            updateImage(data);
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function doBlur() {
+    let formData = new FormData(document.getElementById("blurForm"));
+
+    fetch('/blur/' + Gdata.filename, {
         method: 'POST',
         body: formData
     })
