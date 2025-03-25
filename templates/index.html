@@ -285,6 +285,87 @@
           </div>
         </div>
 
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTen">
+              Изменить цветовое пространство
+            </button>
+          </h2>
+          <div id="collapseTen" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+            <div class="accordion-body col-5 mx-auto text-center">
+                <form id="colorspaceForm" method="POST">
+                  <div class="btn-group my-3" role="group" aria-label="Basic radio toggle button group">
+                    <input type="radio" class="btn-check" name="colorspace" id="colorspace1" autocomplete="off" value="GRAY" checked onchange="changeColorspace()">
+                    <label class="btn btn-outline-primary" for="colorspace1">GRAY</label>
+                  
+                    <input type="radio" class="btn-check" name="colorspace" id="colorspace2" autocomplete="off" value="HSV" onchange="changeColorspace()">
+                    <label class="btn btn-outline-primary" for="colorspace2">HSV</label>
+                  
+                    <input type="radio" class="btn-check" name="colorspace" id="colorspace3" autocomplete="off" value="LAB" onchange="changeColorspace()">
+                    <label class="btn btn-outline-primary" for="colorspace3">LAB</label>
+                  </div>
+                  <button type="button" class="btn btn-primary" onclick="submitChanges();">Подтвердить</button>
+                  <button type="button" class="btn btn-danger" onclick="reeset();">Сброс</button>
+                </form>
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFindObject">
+              Поиск объекта по цвету
+            </button>
+          </h2>
+          <div id="collapseFindObject" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+            <div class="accordion-body col-5 mx-auto text-center">
+              <form id="findObjectForm" onsubmit="findObject()" action="#">
+                <div class="mb-3">
+                  <label for="colorSpace" class="form-label">Цветовое пространство</label>
+                  <select class="form-select" name="color_space" id="colorSpace" autocomplete="off">
+                    <option value="RGB" selected onclick="document.getElementById('find_colorpick').hidden = 0;document.getElementById('find_colormanual').hidden = 1;">RGB</option>
+                    <option value="HSV" onclick="document.getElementById('find_colorpick').hidden = 1;document.getElementById('find_colormanual').hidden = 0;">HSV</option>
+                  </select>
+                </div>
+                <div id="find_colorpick">
+                  <div class="mb-3">
+                    <label for="color" class="form-label">Цвет</label>
+                    <input type="color" class="form-control" name="color" id="color" placeholder="Введите цвет">
+                  </div>
+                  <div class="mb-3">
+                    <label for="tolerance" class="form-label">Допуск</label>
+                    <input type="number" class="form-control" name="tolerance" id="tolerance" value="20" min="0" max="255">
+                  </div>
+                </div>
+                <div id="find_colormanual" hidden>
+                <label class="form-label">Нижняя граница</label>
+                <div class="input-group">
+                    <span class="input-group-text">HSV</span>
+                    <input name="down_h" type="number" min=0 max=179 value=0 class="form-control">
+                    <input name="down_s" type="number" min=0 max=255 value=0 class="form-control">
+                    <input name="down_v" type="number" min=0 max=255 value=0 class="form-control">
+                  </div>
+                  <label class="form-label">Верхняя граница</label>
+                  <div class="input-group">
+                    <span class="input-group-text">HSV</span>
+                    <input name="up_h" type="number" min=0 max=179 value=179 class="form-control">
+                    <input name="up_s" type="number" min=0 max=255 value=255 class="form-control">
+                    <input name="up_v" type="number" min=0 max=255 value=255 class="form-control">
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label for="action" class="form-label">Действие</label>
+                  <select class="form-select" name="action" id="action">
+                    <option value="box" selected>Ограничивающая рамка</option>
+                    <option value="crop">Обрезать</option>
+                  </select>
+                </div>
+                <button type="button" class="btn btn-primary" onclick="findObject()">Найти объект</button>
+              </form>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 

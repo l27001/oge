@@ -276,3 +276,41 @@ function doBlur() {
     })
     .catch(error => console.error('Error:', error));
 }
+
+function changeColorspace() {
+    let formData = new FormData(document.getElementById("colorspaceForm"));
+
+    fetch('/colorspace/' + Gdata.filename, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            showMessage("danger", data.error);
+
+        } else {
+            updateImage(data);
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function findObject() {
+    let formData = new FormData(document.getElementById("findObjectForm"));
+
+    fetch('/find_object/' + Gdata.filename, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            showMessage("danger", data.error);
+        } else {
+            updateImage(data);
+            showMessage("success", `Объект найден! Координаты: ${data.coordinates}`);
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}

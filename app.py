@@ -323,6 +323,148 @@ def upload_file():
         return jsonify({"filename": filename, "filepath": filepath, "size": img.shape})
     else:
         return jsonify({"error": "Неподдерживаемый тип изображения"}), 400
+    
+@app.route("/colorspace/<filename>", methods=["POST"])
+def colorspace(filename):
+    data = request.form
+    try:
+        colorspace = str(data.get("colorspace")).upper()
+    except Exception as e:
+        print(e)
+        return jsonify({"error": "Некорректные данные"}), 400
+
+    filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+    if not os.path.exists(filepath):
+        return jsonify({"error": "Файл не найден"}), 404
+
+    try:
+        img = cv2.imread(filepath)
+        if colorspace == "GRAY":
+            converted_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        elif colorspace == "HSV":
+            converted_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        elif colorspace == "LAB":
+            converted_img = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+        else:
+            return jsonify({"error": "Некорректное цветовое пространство"}), 400
+
+        converted_filename = f"{colorspace.lower()}_{filename}"
+        converted_filepath = os.path.join(app.config["UPLOAD_FOLDER"], converted_filename)
+        cv2.imwrite(converted_filepath, converted_img)
+
+        return jsonify({"filename": converted_filename, "filepath": converted_filepath, "size": converted_img.shape})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+def hex2rgb(hex_value):
+    h = hex_value.strip("#") 
+    rgb = tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
+    return rgb
+
+def rgb2hsv(r, g, b):
+    # Normalize R, G, B values
+    r, g, b = r / 255.0, g / 255.0, b / 255.0
+ 
+    # h, s, v = hue, saturation, value
+    max_rgb = max(r, g, b)    
+    min_rgb = min(r, g, b)   
+    difference = max_rgb-min_rgb 
+ 
+    # if max_rgb and max_rgb are equal then h = 0
+    if max_rgb == min_rgb:
+            h = 0
+     
+    # if max_rgb==r then h is computed as follows
+    elif max_rgb == r:
+            h = (60 * ((g - b) / difference) + 360) % 360
+ 
+    # if max_rgb==g then compute h as follows
+    elif max_rgb == g:
+            h = (60 * ((b - r) / difference) + 120) % 360
+ 
+    # if max_rgb=b then compute h
+    elif max_rgb == b:
+            h = (60 * ((r - g) / difference) + 240) % 360
+ 
+    # if max_rgb==zero then s=0
+    if max_rgb == 0:
+            s = 0
+    else:
+            s = (difference / max_rgb) * 100
+ 
+    # compute v
+    v = max_rgb * 100
+    # return rounded values of H, S and V
+    return tuple(map(round, (h, s, v)))
+
+@app.route("/find_object/<filename>", methods=["POST"])
+def find_object(filename):
+    data = request.form
+    try:
+        color_space = str(data.get("color_space")).upper()  # RGB или HSV
+        color = hex2rgb(data.get("color"))
+        up_hsv = [int(data.get("up_h")), int(data.get("up_s")), int(data.get("up_v"))]
+        down_hsv = [int(data.get("down_h")), int(data.get("down_s")), int(data.get("down_v"))]
+        tolerance = int(data.get("tolerance"))  # Допуск для поиска
+        action = str(data.get("action")).lower()  # "box" или "crop"
+    except Exception as e:
+        print(e)
+        return jsonify({"error": "Некорректные данные"}), 400
+
+    filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+    if not os.path.exists(filepath):
+        return jsonify({"error": "Файл не найден"}), 404
+
+    try:
+        img = cv2.imread(filepath)
+
+        # Преобразование изображения в нужное цветовое пространство
+        if color_space == "HSV":
+            img_converted = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+            if(not (0 <= up_hsv[0] < 180 and 0 <= down_hsv[0] < 180 and 0 <= up_hsv[1] <= 255 and 0 <= down_hsv[1] <= 255
+                     and 0 <= up_hsv[2] <= 255) and 0 <= up_hsv[2] <= 255):
+                return jsonify({"error": "Некорректные границы HSV"}), 400
+            lower_bound = np.array(down_hsv)
+            upper_bound = np.array(up_hsv)
+        elif color_space == "RGB":
+            img_converted = img
+            if(not 0 > tolerance > 255):
+                return jsonify({"error": "Допуск от 0 до 255"}), 400
+            # Определение диапазона цвета с учетом допуска
+            lower_bound = np.array([max(0, c - tolerance) for c in color[::-1]])
+            upper_bound = np.array([min(255, c + tolerance) for c in color[::-1]])
+        else:
+            return jsonify({"error": "Некорректное цветовое пространство"}), 400
+
+        # Создание маски для выделения объекта
+        mask = cv2.inRange(img_converted, lower_bound, upper_bound)
+
+        # Поиск контуров объекта
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if not contours:
+            return jsonify({"error": "Объект не найден"}), 404
+
+        # Выбор самого большого контура
+        largest_contour = max(contours, key=cv2.contourArea)
+        x, y, w, h = cv2.boundingRect(largest_contour)
+
+        if action == "box":
+            # Рисование ограничивающей рамки
+            boxed_img = img.copy()
+            cv2.rectangle(boxed_img, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            result_filepath = os.path.join(app.config["UPLOAD_FOLDER"], f"boxed_{filename}")
+            cv2.imwrite(result_filepath, boxed_img)
+            return jsonify({"filename": f"boxed_{filename}", "filepath": result_filepath, "coordinates": [x, y, w, h], "size": boxed_img.shape})
+        elif action == "crop":
+            # Обрезка изображения по найденным координатам
+            cropped_img = img[y:y + h, x:x + w]
+            result_filepath = os.path.join(app.config["UPLOAD_FOLDER"], f"cropped_{filename}")
+            cv2.imwrite(result_filepath, cropped_img)
+            return jsonify({"filename": f"cropped_{filename}", "filepath": result_filepath, "coordinates": [x, y, w, h], "size": cropped_img.shape})
+        else:
+            return jsonify({"error": "Некорректное действие"}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
 @app.route("/preview/<filename>")
 def preview_image(filename):
