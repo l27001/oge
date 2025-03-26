@@ -1,6 +1,8 @@
 import os
 import cv2
 import numpy as np
+import random
+import string
 from datetime import datetime
 from flask import Flask, request, render_template, send_file, jsonify, url_for
 from werkzeug.utils import secure_filename
@@ -20,6 +22,32 @@ def allowed_file(filename):
 @app.route("/")
 def index():
     return render_template("index.html")
+
+@app.route("/upload", methods=["POST"])
+def upload_file():
+    if "file" not in request.files or request.files["file"].filename == "":
+        return jsonify({"error": "Файл не выбран"}), 400
+    
+    file = request.files["file"]
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        if('.' not in filename):
+            filename = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6)) + '.' + filename
+        filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+        file.save(filepath)
+        
+        try:
+            img = cv2.imread(filepath)
+            if img is None:
+                os.remove(filepath)
+                return jsonify({"error": "Изображение повреждено"}), 400
+        except Exception as e:
+            os.remove(filepath)
+            return jsonify({"error": str(e)}), 400
+        
+        return jsonify({"filename": filename, "filepath": filepath, "size": img.shape})
+    else:
+        return jsonify({"error": "Неподдерживаемый тип изображения"}), 400
 
 @app.route("/resize/<filename>", methods=["POST"])
 def resize(filename):
@@ -299,30 +327,6 @@ def blur(filename):
         return jsonify({"filename": f"blur_{filename}", "filepath": noise_filepath, "size": blur_img.shape})
     except Exception as e:
         return jsonify({"error": str(e)}), 400
-
-@app.route("/upload", methods=["POST"])
-def upload_file():
-    if "file" not in request.files or request.files["file"].filename == "":
-        return jsonify({"error": "Файл не выбран"}), 400
-    
-    file = request.files["file"]
-    if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-        file.save(filepath)
-        
-        try:
-            img = cv2.imread(filepath)
-            if img is None:
-                os.remove(filepath)
-                return jsonify({"error": "Изображение повреждено"}), 400
-        except Exception as e:
-            os.remove(filepath)
-            return jsonify({"error": str(e)}), 400
-        
-        return jsonify({"filename": filename, "filepath": filepath, "size": img.shape})
-    else:
-        return jsonify({"error": "Неподдерживаемый тип изображения"}), 400
     
 @app.route("/colorspace/<filename>", methods=["POST"])
 def colorspace(filename):
@@ -361,42 +365,6 @@ def hex2rgb(hex_value):
     rgb = tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
     return rgb
 
-def rgb2hsv(r, g, b):
-    # Normalize R, G, B values
-    r, g, b = r / 255.0, g / 255.0, b / 255.0
- 
-    # h, s, v = hue, saturation, value
-    max_rgb = max(r, g, b)    
-    min_rgb = min(r, g, b)   
-    difference = max_rgb-min_rgb 
- 
-    # if max_rgb and max_rgb are equal then h = 0
-    if max_rgb == min_rgb:
-            h = 0
-     
-    # if max_rgb==r then h is computed as follows
-    elif max_rgb == r:
-            h = (60 * ((g - b) / difference) + 360) % 360
- 
-    # if max_rgb==g then compute h as follows
-    elif max_rgb == g:
-            h = (60 * ((b - r) / difference) + 120) % 360
- 
-    # if max_rgb=b then compute h
-    elif max_rgb == b:
-            h = (60 * ((r - g) / difference) + 240) % 360
- 
-    # if max_rgb==zero then s=0
-    if max_rgb == 0:
-            s = 0
-    else:
-            s = (difference / max_rgb) * 100
- 
-    # compute v
-    v = max_rgb * 100
-    # return rounded values of H, S and V
-    return tuple(map(round, (h, s, v)))
-
 @app.route("/find_object/<filename>", methods=["POST"])
 def find_object(filename):
     data = request.form
@@ -428,7 +396,7 @@ def find_object(filename):
             upper_bound = np.array(up_hsv)
         elif color_space == "RGB":
             img_converted = img
-            if(not 0 > tolerance > 255):
+            if(not 0 < tolerance <= 255):
                 return jsonify({"error": "Допуск от 0 до 255"}), 400
             # Определение диапазона цвета с учетом допуска
             lower_bound = np.array([max(0, c - tolerance) for c in color[::-1]])
