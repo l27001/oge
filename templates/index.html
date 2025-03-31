@@ -322,9 +322,9 @@
               <form id="findObjectForm" onsubmit="findObject()" action="#">
                 <div class="mb-3">
                   <label for="colorSpace" class="form-label">Цветовое пространство</label>
-                  <select class="form-select" name="color_space" id="colorSpace" autocomplete="off">
-                    <option value="RGB" selected onclick="document.getElementById('find_colorpick').hidden = 0;document.getElementById('find_colormanual').hidden = 1;">RGB</option>
-                    <option value="HSV" onclick="document.getElementById('find_colorpick').hidden = 1;document.getElementById('find_colormanual').hidden = 0;">HSV</option>
+                  <select class="form-select" name="color_space" id="colorSpace" autocomplete="off" onchange="document.getElementById('find_colorpick').hidden = !document.getElementById('find_colorpick').hidden;document.getElementById('find_colormanual').hidden = !document.getElementById('find_colormanual').hidden;">
+                    <option value="RGB" selected>RGB</option>
+                    <option value="HSV">HSV</option>
                   </select>
                 </div>
                 <div id="find_colorpick">
@@ -369,7 +369,6 @@
       </div>
     </div>
 
-
     <!-- Modal -->
   <div class="modal fade" id="saveModal" tabindex="-1" aria-labelledby="saveModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -405,7 +404,6 @@
     </div>
   </div>
     
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/static/script.js"></script>
 </body>
